@@ -33,7 +33,13 @@ begin
 	clock_tx_o   <= clock_tx;
 	-- Inverter is absorbed into the IOB FF clock inputs
 	clock_tx_inv <= not clock_tx;
-
+	
+	-- init unused top 4 bits (only bits 0..3 will be actually read from device pins)
+	int_mii_rxd_o(7) <= '0';
+	int_mii_rxd_o(6) <= '0';
+	int_mii_rxd_o(5) <= '0';
+	int_mii_rxd_o(4) <= '0';
+	
 	-- speed_select_i must be registered so no hazards can reach the BUFGMUX
 	with speed_select_i select gmii_active <=
 		'1' when SPEED_1000MBPS,
@@ -164,7 +170,7 @@ begin
 			clock_i  => clock_mii_rx_io
 		);
 
-	mii_rxd_buffer_generate : for i in mii_rxd_i'range generate
+	mii_rxd_buffer_generate : for i in 3 downto 0 generate
 		mii_rxd_buffer_inst : entity work.input_buffer
 			generic map(
 				HAS_DELAY    => TRUE,
