@@ -116,6 +116,19 @@ architecture rtl of ethernet is
 	signal miim_speed            : t_ethernet_speed;
 	signal speed                 : t_ethernet_speed;
 	signal link_up               : std_ulogic;
+	
+	attribute mark_debug : string;
+	-- line level 4 bit rx
+	attribute mark_debug of rx_clock: signal is "true";
+	attribute mark_debug of int_mii_rx_er: signal is "true";
+	attribute mark_debug of int_mii_rx_dv: signal is "true";
+	attribute mark_debug of int_mii_rxd: signal is "true";
+	-- recovered 8 bit data
+	attribute mark_debug of mac_rx_frame: signal is "true";
+	attribute mark_debug of mac_rx_data: signal is "true";
+	attribute mark_debug of mac_rx_byte_received: signal is "true";
+	attribute mark_debug of mac_rx_error: signal is "true";
+	
 begin
 	reset_o    <= reset;
 	rx_reset_o <= rx_reset;
