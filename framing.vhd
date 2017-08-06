@@ -104,11 +104,11 @@ architecture rtl of framing is
 	signal rx_is_group_address     : std_ulogic;
 	signal rx_mac_address_byte : integer range 0 to MAC_ADDRESS_BYTES;
 
-	attribute mark_debug : string;
-	-- RX framer debug
-	attribute mark_debug of rx_state: signal is "true";
-	attribute mark_debug of rx_frame_size: signal is "true";
-	attribute mark_debug of rx_is_group_address: signal is "true";
+--	attribute mark_debug : string;
+--	-- RX framer debug
+--	attribute mark_debug of rx_state: signal is "true";
+--	attribute mark_debug of rx_frame_size: signal is "true";
+--	attribute mark_debug of rx_is_group_address: signal is "true";
 
 begin
 	-- Pass mii_tx_byte_sent_i through directly as long as data is being transmitted

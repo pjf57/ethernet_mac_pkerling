@@ -12,8 +12,10 @@ library ieee;
 use ieee.std_logic_1164.all;
 use IEEE.NUMERIC_STD.ALL;
 use work.ethernet_types.all;
+use work.utility.all;
 use work.miim_types.all;
 use work.axi_types.all;
+use work.nwk_types.all;
 
 library unisim;
 use unisim.vcomponents.all;
@@ -40,7 +42,7 @@ entity ethernet_with_axi is
 		reset_i          		: in    std_ulogic;
 		-- MAC address of this station
 		-- Must not change after reset is deasserted
-		mac_address_i    		: in    t_mac_address;
+		mac_address_i    		: in    mac_addr_t;
 
 		-- MII (Media-independent interface)
 		mii_tx_clk_i     		: in    std_ulogic;
@@ -105,8 +107,25 @@ END COMPONENT;
 	signal mac_tx_data		: t_ethernet_data;
 	signal mac_tx_wr		: std_ulogic;
 	signal rx_rd_en_i		: std_ulogic;
+	-- busses
+	signal mac_address_rev	: t_mac_address;
 
 begin
+
+combinatoria : process (
+	-- inputs
+	reset_i, mac_address_i, 
+	mii_tx_clk_i, mii_rx_clk_i, mii_rx_er_i, mii_rx_dv_i, mii_rxd_i, 
+	rgmii_rx_ctl_i, miim_clock_i, 
+	speed_override_i, axi_clk, mac_tx, mac_rx_ready, 
+	-- interconnects
+	rx_empty_o, rx_data_o, mac_tx_data, mac_tx_wr, rx_rd_en_i, 
+	-- busses
+	mac_address_rev
+)
+begin
+	mac_address_rev <= reverse_bytes(std_ulogic_vector(mac_address_i));	-- pkerling stack needs MAC addr reveresed
+end process;
 
 	ethernet_inst : entity work.ethernet_with_fifos
 		generic map(
@@ -121,7 +140,7 @@ begin
 			reset_i            => reset_i,
 	    	-- MAC address of this station
 			-- Must not change after reset is deasserted
-			mac_address_i      => mac_address_i,
+			mac_address_i      => mac_address_rev,
 	    	-- MII (Media-independent interface)
 			mii_tx_clk_i       => mii_tx_clk_i,
 			mii_tx_er_o        => mii_tx_er_o,
