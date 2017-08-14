@@ -85,30 +85,18 @@ end entity;
 
 architecture rtl of ethernet_with_axi is
 
-COMPONENT mac_tx_axi_fifo
-  PORT (
-	rst				: IN STD_LOGIC;
-	wr_clk			: IN STD_LOGIC;
-	rd_clk			: IN STD_LOGIC;
-	din				: IN STD_LOGIC_VECTOR(7 DOWNTO 0);
-	wr_en			: IN STD_LOGIC;
-	rd_en			: IN STD_LOGIC;
-	dout			: OUT STD_LOGIC_VECTOR(7 DOWNTO 0);
-	full			: OUT STD_LOGIC;
-	empty			: OUT STD_LOGIC;
-	rd_data_count	: OUT STD_LOGIC_VECTOR(10 DOWNTO 0)
-);
-END COMPONENT;
-
 	-- interconnects from ethernet mac layer
 	signal rx_empty_o      	: std_ulogic;
 	signal rx_data_o       	: t_ethernet_data;
+	signal mac_tx_full		: std_logic;
 	-- interconnects from controller
 	signal mac_tx_data		: t_ethernet_data;
 	signal mac_tx_wr		: std_ulogic;
 	signal rx_rd_en_i		: std_ulogic;
 	-- busses
 	signal mac_address_rev	: t_mac_address;
+	-- controls
+	signal tx_ready			: std_logic;
 
 begin
 
@@ -119,12 +107,15 @@ combinatoria : process (
 	rgmii_rx_ctl_i, miim_clock_i, 
 	speed_override_i, axi_clk, mac_tx, mac_rx_ready, 
 	-- interconnects
-	rx_empty_o, rx_data_o, mac_tx_data, mac_tx_wr, rx_rd_en_i, 
+	rx_empty_o, rx_data_o, mac_tx_data, mac_tx_wr, rx_rd_en_i, mac_tx_full, 
 	-- busses
-	mac_address_rev
+	mac_address_rev, 
+	-- controls 
+	tx_ready
 )
 begin
 	mac_address_rev <= reverse_bytes(std_ulogic_vector(mac_address_i));	-- pkerling stack needs MAC addr reveresed
+	tx_ready <= not mac_tx_full;
 end process;
 
 	ethernet_inst : entity work.ethernet_with_fifos
@@ -176,7 +167,7 @@ end process;
 			tx_reset_o			=> open,
 			tx_data_i			=> mac_tx_data,
 			tx_wr_en_i			=> mac_tx_wr,
-			tx_full_o			=> open,
+			tx_full_o			=> mac_tx_full,
 	    	-- RX FIFO
 			rx_clock_i			=> axi_clk,
 	    	-- Synchronous reset
@@ -206,7 +197,8 @@ controller : entity work.axi_ctrl
 		rx_empty		=> rx_empty_o,
 		-- TX FIFO
 		tx_data			=> mac_tx_data,
-		tx_wr			=> mac_tx_wr
+		tx_wr			=> mac_tx_wr,
+		tx_ready		=> tx_ready
 	);
 	
 

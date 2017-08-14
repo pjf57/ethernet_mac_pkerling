@@ -31,7 +31,8 @@ entity axi_ctrl is
 		rx_empty	      		: in std_ulogic;
 		-- TX FIFO
 		tx_data					: out t_ethernet_data;
-		tx_wr					: out std_ulogic
+		tx_wr					: out std_ulogic;
+		tx_ready				: in std_logic
 	);
 end entity;
 
@@ -53,7 +54,7 @@ COMPONENT mac_tx_axi_fifo
 END COMPONENT;
 
 	type rx_state_t is (IDLE, CNT_LOW, FRAME);
-	type tx_state_t is (IDLE, FILL_FIFO, CNT_H, CNT_L, TX);
+	type tx_state_t is (IDLE, FILL_FIFO, CNT_H, CNT_L, TX, WAIT_READY);
 	type set_sdcntr_t is (HOLD,SET,DECR);
 	type set_ucntr_t is (HOLD,CLR,INCR);
 	type set_clr_t is (HOLD,SET,CLR);
@@ -99,6 +100,7 @@ axi_combinatorial : process (
 		-- output defaults
 		mac_tx_ready <= '0';
 		mac_rx <= empty_axi;
+		mac_rx.data <= std_logic_vector(rx_data);
 		rx_rd <= '0';
 		tx_data <= (others => '0');
 		tx_wr <= '0';
@@ -140,7 +142,6 @@ axi_combinatorial : process (
 			
 			when FRAME =>
 				-- read frame
-				mac_rx.data <= std_logic_vector(rx_data);
 				if (rx_cnt = 0) or (rx_empty = '0') then
 					mac_rx.valid <= '1';
 				end if;
@@ -171,6 +172,7 @@ axi_combinatorial : process (
 				end if;
 
 			when FILL_FIFO =>
+				-- fill the local FIFO
 				mac_tx_ready <= '1';
 				if mac_tx.valid = '1' then
 					tx_fifo_wr <= '1';
@@ -180,25 +182,40 @@ axi_combinatorial : process (
 					next_tx_state <= CNT_H;
 				end if;
 
+			-- transfer the local FIFO contents into the lower layer starting with 2 byte count
+			
 			when CNT_H =>
 				tx_data <= t_ethernet_data("00000" & tx_cnt(10 downto 8));
-				tx_wr <= '1';
-				next_tx_state <= CNT_L;
+				if tx_ready = '1' then
+					tx_wr <= '1';
+					next_tx_state <= CNT_L;
+				end if;
 				
 			when CNT_L =>
 				tx_data <= t_ethernet_data(tx_cnt(7 downto 0));
-				tx_wr <= '1';
-				next_tx_state <= TX;
+				if tx_ready = '1' then
+					tx_wr <= '1';
+					next_tx_state <= TX;
+				end if;
 			
 			when TX =>
 				-- transfer data from TX FIFO to MAC layer
 				tx_data <= t_ethernet_data(tx_fifo_dout);
 				if tx_fifo_empty = '1' then
-					next_tx_state <= IDLE;
+					next_tx_state <= WAIT_READY;
 				else
-					tx_wr <= '1';
-					tx_fifo_rd <= '1';
+					if tx_ready = '1' then
+						tx_wr <= '1';
+						tx_fifo_rd <= '1';
+					end if;
 				end if;
+				
+			when WAIT_READY =>
+				set_tx_cnt <= CLR;
+				if tx_ready = '1' then
+					next_tx_state <= IDLE;
+				end if;
+				
 			
 		end case;			
 		

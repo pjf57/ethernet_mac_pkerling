@@ -30,6 +30,7 @@ entity tx_fifo is
 end entity;
 
 architecture rtl of tx_fifo is
+
 	signal rd_en         : std_ulogic := '0';
 	signal data_out      : std_logic_vector(t_ethernet_data'range);
 	signal empty         : std_ulogic := '1';
