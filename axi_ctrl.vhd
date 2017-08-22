@@ -86,7 +86,7 @@ begin
 
 axi_combinatorial : process (
 	-- inputs
-	reset, mac_tx, mac_rx_ready, rx_data, rx_empty, 
+	reset, mac_tx, mac_rx_ready, rx_data, rx_empty, tx_ready, 
 	-- state
 	rx_state, tx_state, rx_cnt_hi_reg, rx_cnt, tx_cnt, 
 	-- interconnects
